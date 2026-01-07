@@ -1,0 +1,1440 @@
+openapi: 3.0.3
+info:
+  title: Quimbi CRM API
+  description: |
+    Backend API for Quimbi Customer Intelligence Platform.
+
+    This API provides endpoints for ticket management, customer intelligence,
+    AI-powered recommendations, and analytics for e-commerce customer support.
+
+    ## Authentication
+    All requests require an API key in the `X-API-Key` header.
+
+    ## Base URLs
+    - Production: `https://ecommerce-backend-staging-a14c.up.railway.app`
+    - Local Dev: `http://localhost:8000`
+  version: 1.0.0
+  contact:
+    name: Quimbi CTO
+    email: scott@quimbi.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://ecommerce-backend-staging-a14c.up.railway.app
+    description: Production server
+  - url: http://localhost:8000
+    description: Local development server
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: System
+    description: System configuration endpoints
+  - name: Customers
+    description: Customer profile and intelligence endpoints
+  - name: Tickets
+    description: Ticket management endpoints
+  - name: AI
+    description: AI-powered recommendations and drafts
+  - name: Analytics
+    description: Analytics and reporting endpoints
+
+paths:
+  # System Endpoints
+  /api/system/configuration:
+    get:
+      tags:
+        - System
+      summary: Get system configuration
+      description: |
+        Returns dynamic behavioral axis configuration.
+
+        **Status:** 🔴 NOT IMPLEMENTED - Critical for dynamic segments
+
+        Frontend caches this for 24 hours.
+      operationId: getSystemConfiguration
+      responses:
+        '200':
+          description: System configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemConfiguration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Customer Endpoints
+  /api/mcp/customer/{customer_id}:
+    get:
+      tags:
+        - Customers
+      summary: Get customer profile
+      description: |
+        Returns full customer profile including archetype, fuzzy memberships,
+        business metrics, and churn risk.
+
+        **Status:** ✅ IMPLEMENTED
+      operationId: getCustomerById
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "7827249201407"
+      responses:
+        '200':
+          description: Customer profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/mcp/customer/random:
+    get:
+      tags:
+        - Customers
+      summary: Get random customer
+      description: |
+        Returns a random customer profile for testing/demo purposes.
+
+        **Status:** ✅ IMPLEMENTED
+      operationId: getRandomCustomer
+      responses:
+        '200':
+          description: Random customer profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/mcp/customer/{customer_id}/churn-risk:
+    get:
+      tags:
+        - Customers
+      summary: Get customer churn risk
+      description: |
+        Returns churn risk assessment for a specific customer.
+
+        **Status:** ✅ IMPLEMENTED
+      operationId: getCustomerChurnRisk
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "7827249201407"
+      responses:
+        '200':
+          description: Churn risk assessment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChurnRisk'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Ticket Endpoints
+  /api/tickets:
+    get:
+      tags:
+        - Tickets
+      summary: List tickets
+      description: |
+        Returns paginated list of tickets with filtering and sorting.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: listTickets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, pending, closed]
+          description: Filter by ticket status
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [urgent, high, normal, low]
+          description: Filter by priority
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [email, sms, phone, chat, form]
+          description: Filter by channel
+        - name: assigned_to
+          in: query
+          schema:
+            type: string
+          description: Filter by assigned agent ID
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+          description: Filter by customer ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Items per page
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: created_at
+            enum: [created_at, updated_at, priority]
+          description: Sort field
+        - name: order
+          in: query
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+          description: Sort order
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - tickets
+                  - pagination
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketListItem'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  filters_applied:
+                    type: object
+                    additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/tickets/{ticket_id}:
+    get:
+      tags:
+        - Tickets
+      summary: Get ticket details
+      description: |
+        Returns full ticket details including messages, customer profile,
+        and AI recommendations.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: getTicketById
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      responses:
+        '200':
+          description: Ticket details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - Tickets
+      summary: Update ticket
+      description: |
+        Update ticket metadata (status, priority, assignment, tags).
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: updateTicket
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdate'
+      responses:
+        '200':
+          description: Updated ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ticket
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/TicketMetadata'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/tickets/{ticket_id}/messages:
+    post:
+      tags:
+        - Tickets
+      summary: Send message
+      description: |
+        Send a new message (reply to ticket).
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: createMessage
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreate'
+      responses:
+        '201':
+          description: Message created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - ticket_updated
+                properties:
+                  message:
+                    $ref: '#/components/schemas/Message'
+                  ticket_updated:
+                    $ref: '#/components/schemas/TicketMetadata'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/tickets/{ticket_id}/notes:
+    get:
+      tags:
+        - Tickets
+      summary: Get internal notes
+      description: |
+        Get all internal notes for a ticket.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: getTicketNotes
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      responses:
+        '200':
+          description: List of notes
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - notes
+                properties:
+                  notes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InternalNote'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - Tickets
+      summary: Add internal note
+      description: |
+        Add an internal note to a ticket (not sent to customer).
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: createNote
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalNoteCreate'
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - note
+                properties:
+                  note:
+                    $ref: '#/components/schemas/InternalNote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # AI Endpoints
+  /api/ai/tickets/{ticket_id}/recommendation:
+    get:
+      tags:
+        - AI
+      summary: Get AI recommendation
+      description: |
+        Get AI-generated next best action recommendations for a ticket.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: getAIRecommendation
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      responses:
+        '200':
+          description: AI recommendation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NextBestAction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/ai/tickets/{ticket_id}/draft-response:
+    get:
+      tags:
+        - AI
+      summary: Get AI draft response
+      description: |
+        Get AI-generated draft response for a ticket.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: getAIDraftResponse
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      responses:
+        '200':
+          description: AI draft response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIDraftResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/ai/tickets/{ticket_id}/draft-response/regenerate:
+    post:
+      tags:
+        - AI
+      summary: Regenerate AI draft
+      description: |
+        Regenerate AI draft response with different parameters.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: regenerateAIDraft
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "T-001"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegenerateDraftRequest'
+      responses:
+        '200':
+          description: Regenerated draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIDraftResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Analytics Endpoints
+  /api/analytics/overview:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics overview
+      description: |
+        Get dashboard overview metrics.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: getAnalyticsOverview
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date (default: 30 days ago)
+          example: "2025-11-01"
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date (default: today)
+          example: "2025-11-13"
+      responses:
+        '200':
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/analytics/churn-risk:
+    get:
+      tags:
+        - Analytics
+      summary: Get churn risk analytics
+      description: |
+        Get churn risk breakdown and trends.
+
+        **Status:** 🔴 NOT IMPLEMENTED
+      operationId: getChurnRiskAnalytics
+      responses:
+        '200':
+          description: Churn risk analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChurnRiskAnalytics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    # System
+    SystemConfiguration:
+      type: object
+      required:
+        - version
+        - axis_count
+        - axes
+      properties:
+        version:
+          type: string
+          example: "1.0.0"
+        axis_count:
+          type: integer
+          example: 13
+        axes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehavioralAxis'
+
+    BehavioralAxis:
+      type: object
+      required:
+        - name
+        - display_name
+        - description
+        - category
+        - segments
+      properties:
+        name:
+          type: string
+          example: "purchase_frequency"
+        display_name:
+          type: string
+          example: "Purchase Frequency"
+        description:
+          type: string
+          example: "How often the customer makes purchases"
+        category:
+          type: string
+          enum: [purchase, support]
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehavioralSegment'
+
+    BehavioralSegment:
+      type: object
+      required:
+        - name
+        - display_name
+        - description
+        - order
+      properties:
+        name:
+          type: string
+          example: "weekly_shopper"
+        display_name:
+          type: string
+          example: "Weekly Shopper"
+        description:
+          type: string
+          example: "Makes 13+ purchases per year"
+        order:
+          type: integer
+          example: 1
+          description: Sort order (1 = best, higher = worse)
+
+    # Customer
+    CustomerProfile:
+      type: object
+      required:
+        - customer_id
+        - business_metrics
+      properties:
+        customer_id:
+          type: string
+          example: "7827249201407"
+        archetype:
+          type: object
+          nullable: true
+          required:
+            - archetype_id
+            - dominant_segments
+            - member_count
+            - population_percentage
+          properties:
+            archetype_id:
+              type: string
+              example: "weekly_highvalue_multicategory_explorer"
+            dominant_segments:
+              type: object
+              additionalProperties:
+                type: string
+              example:
+                purchase_frequency: "weekly_shopper"
+                purchase_value: "high_value"
+            member_count:
+              type: integer
+              example: 847
+            population_percentage:
+              type: number
+              format: float
+              example: 0.0847
+        fuzzy_memberships:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+        business_metrics:
+          $ref: '#/components/schemas/BusinessMetrics'
+        churn_risk:
+          $ref: '#/components/schemas/ChurnRisk'
+
+    BusinessMetrics:
+      type: object
+      required:
+        - lifetime_value
+        - total_orders
+        - avg_order_value
+        - customer_tenure_days
+      properties:
+        lifetime_value:
+          type: number
+          format: float
+          example: 3420.50
+        total_orders:
+          type: integer
+          example: 28
+        avg_order_value:
+          type: number
+          format: float
+          example: 122.16
+        days_since_last_purchase:
+          type: integer
+          nullable: true
+          example: 18
+        customer_tenure_days:
+          type: integer
+          example: 567
+
+    ChurnRisk:
+      type: object
+      required:
+        - risk_level
+        - churn_risk_score
+        - factors
+        - recommendation
+      properties:
+        risk_level:
+          type: string
+          enum: [critical, high, medium, low]
+        churn_risk_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.73
+        factors:
+          type: object
+          required:
+            - recency_days
+            - order_frequency
+            - value_tier
+            - engagement_trend
+          properties:
+            recency_days:
+              type: integer
+              example: 18
+            order_frequency:
+              type: string
+              example: "declining"
+            value_tier:
+              type: string
+              example: "vip"
+            engagement_trend:
+              type: string
+              example: "decreasing"
+        recommendation:
+          type: string
+          example: "Immediate retention offer recommended. VIP customer showing decreased engagement."
+
+    # Tickets
+    TicketListItem:
+      type: object
+      required:
+        - id
+        - customer_id
+        - channel
+        - status
+        - priority
+        - subject
+        - created_at
+        - updated_at
+        - tags
+        - message_count
+      properties:
+        id:
+          type: string
+          example: "T-001"
+        customer_id:
+          type: string
+          example: "7827249201407"
+        channel:
+          type: string
+          enum: [email, sms, phone, chat, form]
+        status:
+          type: string
+          enum: [open, pending, closed]
+        priority:
+          type: string
+          enum: [urgent, high, normal, low]
+        subject:
+          type: string
+          example: "Order not received"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-11-13T17:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-11-13T17:30:00Z"
+        assigned_to:
+          type: string
+          nullable: true
+          example: "agent_123"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["vip", "shipping_issue"]
+        message_count:
+          type: integer
+          example: 3
+        last_message_preview:
+          type: string
+          example: "I ordered thread last week..."
+        last_message_at:
+          type: string
+          format: date-time
+          example: "2025-11-13T17:30:00Z"
+        last_message_from_agent:
+          type: boolean
+          example: false
+
+    Ticket:
+      type: object
+      required:
+        - id
+        - customer_id
+        - channel
+        - status
+        - priority
+        - subject
+        - messages
+        - created_at
+        - updated_at
+        - tags
+      properties:
+        id:
+          type: string
+          example: "T-001"
+        customer_id:
+          type: string
+          example: "7827249201407"
+        channel:
+          type: string
+          enum: [email, sms, phone, chat, form]
+        status:
+          type: string
+          enum: [open, pending, closed]
+        priority:
+          type: string
+          enum: [urgent, high, normal, low]
+        subject:
+          type: string
+          example: "Order not received"
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        assigned_to:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        customer_profile:
+          $ref: '#/components/schemas/CustomerProfile'
+        ai_recommendation:
+          $ref: '#/components/schemas/NextBestAction'
+        ai_draft_response:
+          type: string
+          nullable: true
+
+    TicketMetadata:
+      type: object
+      required:
+        - id
+        - status
+        - priority
+        - assigned_to
+        - tags
+        - updated_at
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [open, pending, closed]
+        priority:
+          type: string
+          enum: [urgent, high, normal, low]
+        assigned_to:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    TicketUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, pending, closed]
+        priority:
+          type: string
+          enum: [urgent, high, normal, low]
+        assigned_to:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          description: Replace all tags
+        add_tags:
+          type: array
+          items:
+            type: string
+          description: Add these tags
+        remove_tags:
+          type: array
+          items:
+            type: string
+          description: Remove these tags
+
+    Message:
+      type: object
+      required:
+        - id
+        - ticket_id
+        - from_agent
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          example: "msg_001"
+        ticket_id:
+          type: string
+          example: "T-001"
+        from_agent:
+          type: boolean
+          example: false
+        content:
+          type: string
+          example: "I ordered thread last week..."
+        created_at:
+          type: string
+          format: date-time
+        author_name:
+          type: string
+          nullable: true
+          example: "Sarah Johnson"
+        author_email:
+          type: string
+          nullable: true
+          example: "sarah@example.com"
+
+    MessageCreate:
+      type: object
+      required:
+        - content
+        - from_agent
+      properties:
+        content:
+          type: string
+          example: "Hi Sarah, I've processed your replacement order..."
+        from_agent:
+          type: boolean
+          example: true
+        author_name:
+          type: string
+          example: "John Smith"
+        author_email:
+          type: string
+          example: "john@company.com"
+        send_to_customer:
+          type: boolean
+          default: true
+          description: Actually send email/SMS to customer
+        close_ticket:
+          type: boolean
+          default: false
+          description: Close ticket after sending
+
+    InternalNote:
+      type: object
+      required:
+        - id
+        - ticket_id
+        - content
+        - created_at
+        - author_name
+        - author_id
+      properties:
+        id:
+          type: string
+          example: "note_001"
+        ticket_id:
+          type: string
+          example: "T-001"
+        content:
+          type: string
+          example: "Customer mentioned this is second shipping issue..."
+        created_at:
+          type: string
+          format: date-time
+        author_name:
+          type: string
+          example: "John Smith"
+        author_id:
+          type: string
+          example: "agent_123"
+
+    InternalNoteCreate:
+      type: object
+      required:
+        - content
+        - author_name
+        - author_id
+      properties:
+        content:
+          type: string
+          minLength: 1
+        author_name:
+          type: string
+        author_id:
+          type: string
+
+    # AI
+    NextBestAction:
+      type: object
+      required:
+        - priority
+        - estimated_impact
+        - actions
+        - talking_points
+        - warnings
+      properties:
+        priority:
+          type: string
+          enum: [urgent, high, normal]
+        estimated_impact:
+          type: object
+          required:
+            - retention_probability
+            - revenue_at_risk
+          properties:
+            retention_probability:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              example: 0.45
+            revenue_at_risk:
+              type: number
+              format: float
+              example: 3420.50
+        actions:
+          type: array
+          items:
+            type: object
+            required:
+              - action
+              - priority
+              - completed
+            properties:
+              action:
+                type: string
+                example: "Offer expedited replacement shipment at no charge"
+              priority:
+                type: integer
+                minimum: 1
+                example: 1
+              completed:
+                type: boolean
+                default: false
+              reasoning:
+                type: string
+                example: "VIP customer with high churn risk needs immediate resolution"
+        talking_points:
+          type: array
+          items:
+            type: string
+          example:
+            - "Acknowledge frustration and apologize for delivery issue"
+            - "Emphasize her VIP status and long-term relationship"
+        warnings:
+          type: array
+          items:
+            type: string
+          example:
+            - "VIP customer with high churn risk (73%)"
+            - "Recent purchase frequency decline detected"
+        generated_at:
+          type: string
+          format: date-time
+
+    AIDraftResponse:
+      type: object
+      required:
+        - ticket_id
+        - draft
+        - tone
+        - generated_at
+      properties:
+        ticket_id:
+          type: string
+          example: "T-001"
+        draft:
+          type: string
+          example: "Hi Sarah,\n\nI'm so sorry to hear about the delivery issue..."
+        tone:
+          type: string
+          example: "empathetic"
+        length:
+          type: string
+          enum: [short, medium, long]
+          example: "medium"
+        personalization_applied:
+          type: array
+          items:
+            type: string
+          example:
+            - "VIP status mentioned"
+            - "Project deadline acknowledged"
+        generated_at:
+          type: string
+          format: date-time
+
+    RegenerateDraftRequest:
+      type: object
+      properties:
+        tone:
+          type: string
+          enum: [friendly, professional, empathetic, apologetic]
+          description: Desired tone
+        length:
+          type: string
+          enum: [short, medium, long]
+          description: Desired length
+        include_offer:
+          type: boolean
+          description: Include compensation offer
+        template:
+          type: string
+          description: Use specific template (e.g., "shipping_issue")
+
+    # Analytics
+    AnalyticsOverview:
+      type: object
+      required:
+        - period
+        - tickets
+        - response_times
+        - customer_satisfaction
+        - churn_prevention
+        - ai_performance
+      properties:
+        period:
+          type: object
+          required:
+            - start
+            - end
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        tickets:
+          type: object
+          properties:
+            total:
+              type: integer
+            open:
+              type: integer
+            pending:
+              type: integer
+            closed:
+              type: integer
+            by_priority:
+              type: object
+              additionalProperties:
+                type: integer
+            by_channel:
+              type: object
+              additionalProperties:
+                type: integer
+        response_times:
+          type: object
+          properties:
+            avg_first_response_minutes:
+              type: number
+            avg_resolution_hours:
+              type: number
+            within_sla:
+              type: number
+        customer_satisfaction:
+          type: object
+          properties:
+            avg_rating:
+              type: number
+            total_responses:
+              type: integer
+            nps_score:
+              type: integer
+        churn_prevention:
+          type: object
+          properties:
+            at_risk_customers:
+              type: integer
+            interventions:
+              type: integer
+            retention_rate:
+              type: number
+            revenue_saved:
+              type: number
+        ai_performance:
+          type: object
+          properties:
+            draft_acceptance_rate:
+              type: number
+            recommendation_follow_rate:
+              type: number
+            avg_edit_distance:
+              type: number
+
+    ChurnRiskAnalytics:
+      type: object
+      required:
+        - by_risk_level
+        - trend
+      properties:
+        by_risk_level:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              count:
+                type: integer
+              total_ltv:
+                type: number
+              avg_ltv:
+                type: number
+        trend:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              critical:
+                type: integer
+              high:
+                type: integer
+              medium:
+                type: integer
+              low:
+                type: integer
+
+    # Common
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 50
+        total:
+          type: integer
+          example: 234
+        total_pages:
+          type: integer
+          example: 5
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "TICKET_NOT_FOUND"
+            message:
+              type: string
+              example: "Ticket with ID T-999 not found"
+            details:
+              type: object
+              additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INVALID_STATUS"
+              message: "Invalid status value. Must be one of: open, pending, closed"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INVALID_API_KEY"
+              message: "Invalid or missing API key"
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "TICKET_NOT_FOUND"
+              message: "Ticket with ID T-999 not found"
+              details:
+                ticket_id: "T-999"
+
+    ServiceUnavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "AI_SERVICE_UNAVAILABLE"
+              message: "AI service is temporarily unavailable"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An unexpected error occurred"

@@ -1,0 +1,14 @@
+{
+  "name": "front-end-alpha-ecommerce",
+  "version": "1.0.0",
+  "description": "AI-First CRM Frontend Deployment",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
