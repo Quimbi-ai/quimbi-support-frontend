@@ -24,6 +24,14 @@ export function Layout() {
             >
               Inbox
             </NavLink>
+            <NavLink
+              to="/knowledge-base"
+              className={({ isActive }) =>
+                `text-sm ${isActive ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`
+              }
+            >
+              Knowledge Base
+            </NavLink>
           </div>
         </div>
       </nav>

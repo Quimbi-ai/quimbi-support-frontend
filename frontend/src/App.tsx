@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { InboxPage } from './pages/InboxPage';
 import { TicketDetailPage } from './pages/TicketDetailPage';
 import { DemoPage } from './pages/DemoPage';
+import KnowledgeBasePage from './pages/KnowledgeBasePage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -26,6 +27,7 @@ function App() {
             <Route path="demo" element={<DemoPage />} />
             <Route path="inbox" element={<InboxPage />} />
             <Route path="tickets/:ticketId" element={<TicketDetailPage />} />
+            <Route path="knowledge-base" element={<KnowledgeBasePage />} />
           </Route>
         </Routes>
       </BrowserRouter>
