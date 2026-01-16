@@ -1,6 +1,10 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ecommerce-backend-staging-a14c.up.railway.app';
+// FIXED: Changed from AI brain URL to support-logic URL
+// OLD (incorrect): 'https://ecommerce-backend-staging-a14c.up.railway.app' (AI brain direct)
+// NEW (correct): 'https://beecommerce-production.up.railway.app' (support-logic backend)
+// Support-logic provides tickets, messages, and proxies AI brain calls
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://beecommerce-production.up.railway.app';
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 class ApiClient {
@@ -76,3 +80,4 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+export default apiClient;
