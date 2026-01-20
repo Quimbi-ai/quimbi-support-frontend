@@ -25,6 +25,14 @@ cd frontend && npm run dev
 # Runs at http://localhost:5173
 ```
 
+## 🔐 Access
+
+The application is password-protected. Use the following credentials:
+
+**Password:** `quimbiai`
+
+This password is required on first access. The session persists until the browser tab is closed.
+
 ## 📁 Structure
 
 ```
