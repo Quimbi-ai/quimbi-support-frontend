@@ -1,15 +1,20 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
 
 export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const success = login(password);
-    if (!success) {
+    if (success) {
+      // Redirect to demo page on successful login
+      navigate('/demo');
+    } else {
       setError('Incorrect password');
       setPassword('');
     }
