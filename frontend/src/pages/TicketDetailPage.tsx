@@ -810,12 +810,12 @@ export function TicketDetailPage() {
                             ))}
                           </div>
                         )}
-                        {profile.last_purchase.tracking_numbers && profile.last_purchase.tracking_numbers.length > 0 && (
+                        {profile.last_purchase?.tracking_numbers && profile.last_purchase.tracking_numbers.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-blue-200">
                             <div className="text-xs font-medium text-blue-700 mb-1">Tracking:</div>
                             {profile.last_purchase.tracking_numbers.map((tracking, idx) => (
                               <div key={idx} className="text-xs">
-                                {profile.last_purchase.tracking_urls && profile.last_purchase.tracking_urls[idx] ? (
+                                {profile.last_purchase?.tracking_urls && profile.last_purchase.tracking_urls[idx] ? (
                                   <a
                                     href={profile.last_purchase.tracking_urls[idx]}
                                     target="_blank"
@@ -827,7 +827,7 @@ export function TicketDetailPage() {
                                 ) : (
                                   <span className="text-blue-700 font-mono">{tracking}</span>
                                 )}
-                                {profile.last_purchase.shipping_carrier && (
+                                {profile.last_purchase?.shipping_carrier && (
                                   <span className="text-blue-600 ml-1">({profile.last_purchase.shipping_carrier})</span>
                                 )}
                               </div>
