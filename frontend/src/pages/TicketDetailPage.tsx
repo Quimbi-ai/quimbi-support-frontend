@@ -776,6 +776,68 @@ export function TicketDetailPage() {
                     </div>
                   </div>
 
+                  {/* Last Purchase Details */}
+                  {profile.last_purchase && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="text-xs font-medium text-blue-900 mb-2">LAST PURCHASE</div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-blue-700 font-medium">Order #{profile.last_purchase.order_number}</span>
+                          <span className="text-blue-900 font-semibold">${parseFloat(profile.last_purchase.total).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-blue-600">
+                            {new Date(profile.last_purchase.order_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                          <span className="text-blue-600">
+                            {profile.last_purchase.days_ago ? `${profile.last_purchase.days_ago}d ago` : ''}
+                          </span>
+                        </div>
+                        <div className="text-xs text-blue-700">
+                          <span className="font-medium">Status:</span> {profile.last_purchase.status || 'N/A'} | {profile.last_purchase.fulfillment_status || 'N/A'}
+                        </div>
+                        {profile.last_purchase.products && profile.last_purchase.products.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-blue-200">
+                            <div className="text-xs font-medium text-blue-700 mb-1">Products:</div>
+                            {profile.last_purchase.products.map((product, idx) => (
+                              <div key={idx} className="text-xs text-blue-700">
+                                • {product.title} (×{product.quantity})
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {profile.last_purchase.tracking_numbers && profile.last_purchase.tracking_numbers.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-blue-200">
+                            <div className="text-xs font-medium text-blue-700 mb-1">Tracking:</div>
+                            {profile.last_purchase.tracking_numbers.map((tracking, idx) => (
+                              <div key={idx} className="text-xs">
+                                {profile.last_purchase.tracking_urls && profile.last_purchase.tracking_urls[idx] ? (
+                                  <a
+                                    href={profile.last_purchase.tracking_urls[idx]}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline font-mono"
+                                  >
+                                    {tracking}
+                                  </a>
+                                ) : (
+                                  <span className="text-blue-700 font-mono">{tracking}</span>
+                                )}
+                                {profile.last_purchase.shipping_carrier && (
+                                  <span className="text-blue-600 ml-1">({profile.last_purchase.shipping_carrier})</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Quimbi Intelligence */}
                   <div className="mb-4 pt-3 border-t border-gray-200">
                     <div className="text-xs font-medium text-gray-500 mb-2">QUIMBI INTELLIGENCE</div>

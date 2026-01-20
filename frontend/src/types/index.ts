@@ -23,6 +23,23 @@ export interface SystemConfiguration {
 }
 
 // Customer Profile (with dynamic segments)
+export interface LastPurchase {
+  order_number: string;
+  order_date: string;
+  total: string;
+  status: string;
+  fulfillment_status: string;
+  products: {
+    title: string;
+    quantity: number;
+    price: string;
+  }[];
+  tracking_numbers: string[];
+  tracking_urls: string[];
+  shipping_carrier: string | null;
+  days_ago: number | null;
+}
+
 export interface CustomerProfile {
   customer_id: string;
   archetype: {
@@ -55,6 +72,7 @@ export interface CustomerProfile {
     risk_level?: ChurnRiskLevel;
     recommendation?: string;
   };
+  last_purchase?: LastPurchase | null;
 }
 
 export interface Ticket {
