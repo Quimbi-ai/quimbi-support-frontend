@@ -800,16 +800,43 @@ export function TicketDetailPage() {
                         <div className="text-xs text-blue-700">
                           <span className="font-medium">Status:</span> {profile.last_purchase.status || 'N/A'} | {profile.last_purchase.fulfillment_status || 'N/A'}
                         </div>
-                        {profile.last_purchase.products && profile.last_purchase.products.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-blue-200">
-                            <div className="text-xs font-medium text-blue-700 mb-1">Products:</div>
-                            {profile.last_purchase.products.map((product, idx) => (
-                              <div key={idx} className="text-xs text-blue-700">
-                                • {product.title} (×{product.quantity})
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {profile.last_purchase.products && profile.last_purchase.products.length > 0 && (() => {
+                          // Filter out insurance/protection products and group duplicates
+                          const productMap = new Map<string, number>();
+                          profile.last_purchase.products.forEach(product => {
+                            const title = product.title || '';
+                            // Skip ShipInsure and other protection products
+                            if (title.toLowerCase().includes('shipinsure') ||
+                                title.toLowerCase().includes('package protection')) {
+                              return;
+                            }
+                            const currentQty = productMap.get(title) || 0;
+                            productMap.set(title, currentQty + (product.quantity || 1));
+                          });
+
+                          const uniqueProducts = Array.from(productMap.entries())
+                            .map(([title, quantity]) => ({ title, quantity }));
+
+                          // Limit to first 5 products
+                          const displayProducts = uniqueProducts.slice(0, 5);
+                          const hasMore = uniqueProducts.length > 5;
+
+                          return displayProducts.length > 0 ? (
+                            <div className="mt-2 pt-2 border-t border-blue-200">
+                              <div className="text-xs font-medium text-blue-700 mb-1">Products:</div>
+                              {displayProducts.map((product, idx) => (
+                                <div key={idx} className="text-xs text-blue-700">
+                                  • {product.title} (×{product.quantity})
+                                </div>
+                              ))}
+                              {hasMore && (
+                                <div className="text-xs text-blue-600 italic mt-1">
+                                  + {uniqueProducts.length - 5} more items
+                                </div>
+                              )}
+                            </div>
+                          ) : null;
+                        })()}
                         {profile.last_purchase?.tracking_numbers && profile.last_purchase.tracking_numbers.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-blue-200">
                             <div className="text-xs font-medium text-blue-700 mb-1">Tracking:</div>
