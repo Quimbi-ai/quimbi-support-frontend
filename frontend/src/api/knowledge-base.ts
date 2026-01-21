@@ -1,7 +1,7 @@
-// Knowledge Base API - connects to Support Backend (port 8002)
+// Knowledge Base API - connects to AI Brain (port 8000)
 import axios from 'axios';
 
-const KB_API_BASE_URL = 'http://localhost:8002';
+const KB_API_BASE_URL = 'http://localhost:8000';
 const KB_API_KEY = 'test-api-key-12345';
 
 const kbClient = axios.create({
