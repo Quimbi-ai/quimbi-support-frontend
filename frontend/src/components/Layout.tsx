@@ -17,6 +17,14 @@ export function Layout() {
               Demo
             </NavLink>
             <NavLink
+              to="/gaming"
+              className={({ isActive }) =>
+                `text-sm ${isActive ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`
+              }
+            >
+              Gaming
+            </NavLink>
+            <NavLink
               to="/inbox"
               className={({ isActive }) =>
                 `text-sm ${isActive ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`

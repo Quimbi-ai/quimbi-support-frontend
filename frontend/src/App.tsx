@@ -6,6 +6,7 @@ import { Layout } from './components/Layout';
 import { InboxPage } from './pages/InboxPage';
 import { TicketDetailPage } from './pages/TicketDetailPage';
 import { DemoPage } from './pages/DemoPage';
+import { GamingPage } from './pages/GamingPage';
 import { LoginPage } from './pages/LoginPage';
 import KnowledgeBasePage from './pages/KnowledgeBasePage';
 
@@ -37,6 +38,7 @@ function App() {
             >
               <Route index element={<Navigate to="/demo" replace />} />
               <Route path="demo" element={<DemoPage />} />
+              <Route path="gaming" element={<GamingPage />} />
               <Route path="inbox" element={<InboxPage />} />
               <Route path="tickets/:ticketId" element={<TicketDetailPage />} />
               <Route path="knowledge-base" element={<KnowledgeBasePage />} />
