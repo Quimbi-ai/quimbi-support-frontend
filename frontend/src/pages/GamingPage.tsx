@@ -1,8 +1,129 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+interface Message {
+  id: string;
+  sender: 'player' | 'agent';
+  text: string;
+  timestamp: string;
+}
 
 export function GamingPage() {
   const [gameFilter, setGameFilter] = useState<'all' | 'ac' | 'nba'>('all');
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Record<string, Message[]>>({});
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('selectedTicket state changed:', selectedTicket);
+  }, [selectedTicket]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [conversations, selectedTicket]);
+
+  // Initialize conversation when ticket is selected
+  const getConversation = (ticketId: string) => {
+    if (!conversations[ticketId]) {
+      const ticket = tickets.find(t => t.id === ticketId);
+      if (ticket) {
+        const initialMessages: Message[] = [
+          {
+            id: '1',
+            sender: 'player',
+            text: ticket.fullMessage,
+            timestamp: ticket.time,
+          },
+          {
+            id: '2',
+            sender: 'agent',
+            text: ticket.response,
+            timestamp: 'Just now',
+          },
+        ];
+        setConversations(prev => ({ ...prev, [ticketId]: initialMessages }));
+        return initialMessages;
+      }
+    }
+    return conversations[ticketId] || [];
+  };
+
+  // Generate AI response based on context
+  const generateAIResponse = (playerMessage: string, ticket: any): string => {
+    const lowerMessage = playerMessage.toLowerCase();
+
+    // High-value player responses (Competitive Whale, Dream Team Collector)
+    if (ticket.spend > 500) {
+      if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
+        return `You're very welcome, ${ticket.player}! As one of our top players, your satisfaction is our priority. Is there anything else I can help you with today?`;
+      }
+      if (lowerMessage.includes('when') || lowerMessage.includes('how long')) {
+        return `I'm checking on this right now. Given your player status, I'm prioritizing this and you should see the resolution within the next hour. I'll send you a confirmation as soon as it's complete.`;
+      }
+      if (lowerMessage.includes('still') || lowerMessage.includes('not working') || lowerMessage.includes('broken')) {
+        return `I sincerely apologize that you're still experiencing this issue. Let me escalate this immediately to our senior team. I'm also adding additional compensation to your account for the continued inconvenience. You'll receive an update within 30 minutes.`;
+      }
+      return `I completely understand your concern, ${ticket.player}. As a valued member of our community, I want to make sure this is resolved to your satisfaction. Let me look into this further and get back to you with a comprehensive solution.`;
+    }
+
+    // Standard player responses (Completionist, Stealth Purist)
+    if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
+      return `You're welcome! I'm glad I could help. Feel free to reach out if you need anything else. Happy gaming!`;
+    }
+    if (lowerMessage.includes('when') || lowerMessage.includes('how long')) {
+      return `Based on our current timeline, you should see this resolved within 24-48 hours. I'll make sure to follow up with you once the fix is deployed.`;
+    }
+    if (lowerMessage.includes('still') || lowerMessage.includes('not working') || lowerMessage.includes('broken')) {
+      return `I'm sorry to hear it's still not working. Let me check the status of the fix and get back to you with an update. Can you let me know exactly what you're experiencing?`;
+    }
+
+    // Default helpful response
+    return `Thanks for the additional information. I'm reviewing your account details and will make sure this gets the attention it deserves. Is there anything specific you'd like me to prioritize?`;
+  };
+
+  // Handle sending a message
+  const handleSendMessage = () => {
+    if (!inputValue.trim() || !selectedTicket) return;
+
+    const ticket = tickets.find(t => t.id === selectedTicket);
+    if (!ticket) return;
+
+    const currentConversation = conversations[selectedTicket] || getConversation(selectedTicket);
+
+    // Add player message
+    const playerMessage: Message = {
+      id: Date.now().toString(),
+      sender: 'player',
+      text: inputValue.trim(),
+      timestamp: 'Just now',
+    };
+
+    setConversations(prev => ({
+      ...prev,
+      [selectedTicket]: [...currentConversation, playerMessage],
+    }));
+
+    setInputValue('');
+    setIsTyping(true);
+
+    // Simulate AI typing delay
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'agent',
+        text: generateAIResponse(inputValue.trim(), ticket),
+        timestamp: 'Just now',
+      };
+
+      setConversations(prev => ({
+        ...prev,
+        [selectedTicket]: [...(prev[selectedTicket] || []), aiResponse],
+      }));
+      setIsTyping(false);
+    }, 1500);
+  };
 
   // Hardcoded fake tickets - NO API CALLS
   const tickets = [
@@ -126,19 +247,85 @@ export function GamingPage() {
             </div>
           </div>
 
-          {/* Customer Message */}
+          {/* Chat Window */}
           <div className="mb-6">
-            <div className="text-sm font-medium text-gray-500 mb-2">PLAYER MESSAGE</div>
-            <div className="bg-gray-50 rounded p-4 text-sm whitespace-pre-wrap">
-              {selected.fullMessage}
-            </div>
-          </div>
+            <div className="text-sm font-medium text-gray-500 mb-2">CONVERSATION</div>
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-4 max-h-[500px] overflow-y-auto">
+              {getConversation(selected.id).map((message) => (
+                message.sender === 'player' ? (
+                  <div key={message.id} className="flex justify-start">
+                    <div className="max-w-[80%]">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                          {selected.player[0]}
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">{selected.player}</span>
+                        <span className="text-xs text-gray-400">{message.timestamp}</span>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg rounded-tl-none p-3 text-sm whitespace-pre-wrap">
+                        {message.text}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={message.id} className="flex justify-end">
+                    <div className="max-w-[80%]">
+                      <div className="flex items-center gap-2 mb-1 justify-end">
+                        <span className="text-xs text-gray-400">{message.timestamp}</span>
+                        <span className="text-xs font-medium text-gray-700">Quimbi AI Agent</span>
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
+                          Q
+                        </div>
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg rounded-tr-none p-3 text-sm whitespace-pre-wrap">
+                        {message.text}
+                      </div>
+                    </div>
+                  </div>
+                )
+              ))}
 
-          {/* AI Response */}
-          <div>
-            <div className="text-sm font-medium text-gray-500 mb-2">QUIMBI AI RESPONSE</div>
-            <div className="bg-green-50 border border-green-200 rounded p-4 text-sm whitespace-pre-wrap">
-              {selected.response}
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex justify-end">
+                  <div className="max-w-[80%]">
+                    <div className="flex items-center gap-2 mb-1 justify-end">
+                      <span className="text-xs font-medium text-gray-700">Quimbi AI Agent</span>
+                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
+                        Q
+                      </div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg rounded-tr-none p-3 text-sm">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                placeholder="Type a message as the player..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isTyping}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                Send
+              </button>
             </div>
           </div>
 
@@ -195,7 +382,10 @@ export function GamingPage() {
         {sorted.map((ticket) => (
           <div
             key={ticket.id}
-            onClick={() => setSelectedTicket(ticket.id)}
+            onClick={() => {
+              console.log('Ticket clicked:', ticket.id, ticket.subject);
+              setSelectedTicket(ticket.id);
+            }}
             className={`p-4 border rounded cursor-pointer transition-all duration-200 ${
               ticket.priority >= 8
                 ? 'border-amber-400 bg-amber-50 shadow-lg hover:shadow-xl'
