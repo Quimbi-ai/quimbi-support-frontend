@@ -13,6 +13,8 @@ export function GamingPage() {
   const [conversations, setConversations] = useState<Record<string, Message[]>>({});
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [aiResponseDraft, setAiResponseDraft] = useState('');
+  const [showAiEditor, setShowAiEditor] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -137,30 +139,45 @@ export function GamingPage() {
       timestamp: 'Just now',
     };
 
+    const playerMessageText = inputValue.trim();
+    setInputValue('');
+
     setConversations(prev => ({
       ...prev,
       [selectedTicket]: [...currentConversation, playerMessage],
     }));
 
-    setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI typing delay
+    // Simulate AI typing delay, then show editable draft
     setTimeout(() => {
-      const updatedConversation = conversations[selectedTicket] || currentConversation;
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'agent',
-        text: generateAIResponse(inputValue.trim(), ticket, updatedConversation),
-        timestamp: 'Just now',
-      };
+      const updatedConversation = [...currentConversation, playerMessage];
+      const generatedResponse = generateAIResponse(playerMessageText, ticket, updatedConversation);
 
-      setConversations(prev => ({
-        ...prev,
-        [selectedTicket]: [...(prev[selectedTicket] || []), aiResponse],
-      }));
+      setAiResponseDraft(generatedResponse);
+      setShowAiEditor(true);
       setIsTyping(false);
     }, 1500);
+  };
+
+  // Handle sending the AI response after editing
+  const handleSendAiResponse = () => {
+    if (!aiResponseDraft.trim() || !selectedTicket) return;
+
+    const aiMessage: Message = {
+      id: Date.now().toString(),
+      sender: 'agent',
+      text: aiResponseDraft.trim(),
+      timestamp: 'Just now',
+    };
+
+    setConversations(prev => ({
+      ...prev,
+      [selectedTicket]: [...(prev[selectedTicket] || []), aiMessage],
+    }));
+
+    setAiResponseDraft('');
+    setShowAiEditor(false);
   };
 
   // Reset conversation to initial state
@@ -191,7 +208,7 @@ export function GamingPage() {
       spend: 2847.50,
       playtime: 847,
       time: '15m ago',
-      response: "Hi ProStriker23,\n\nI completely understand your frustration. As one of our most valued players with 847 hours invested, this experience falls short of what you deserve.\n\nI'm escalating this to our server team immediately and I'll personally ensure your rating is restored within the next 2 hours. I'm also adding 100,000 VC to your account as an apology for this disruption.\n\nWe're aware of the server issues during peak hours and our team is working on a permanent fix. You should see improvements by this weekend.\n\nThank you for your patience and loyalty to NBA 2K.",
+      response: "Hi ProStriker23, thanks for reaching out. I'm really sorry to hear about your experience with the server lag - that sounds incredibly frustrating, especially during ranked matches.\n\nI can see you've been with us for quite a while and have invested a lot of time in the game. Can you tell me a bit more about when this happened? Was it during a specific time of day, or have you noticed any patterns with the lag?",
     },
     {
       id: '2',
@@ -205,7 +222,7 @@ export function GamingPage() {
       spend: 189.99,
       playtime: 312,
       time: '45m ago',
-      response: "Hello AchievementHunter,\n\nThank you for your dedication to achieving 100% completion - that's impressive! I can see you've completed all the requirements for the trophy.\n\nThis is a known issue affecting completionists in the Druids DLC. Our team has developed a fix that will be included in next week's patch (Tuesday, Feb 6th).\n\nOnce the patch is live, the trophy should unlock automatically when you load your save. If it doesn't unlock within 24 hours of the patch, please reach out and I'll manually trigger it for your account.\n\nAs a thank you for your patience and day-one DLC support, I'm adding a special in-game mount to your inventory.\n\nHappy hunting, Assassin!",
+      response: "Hi AchievementHunter, I can see from your account that you're so close to that platinum - 99.8% is seriously impressive!\n\nI want to help you get this sorted out. Can you let me know which specific trophy isn't unlocking? Also, have you tried any troubleshooting steps on your end, like reloading the save or checking the requirements list?",
     },
     {
       id: '3',
@@ -219,7 +236,7 @@ export function GamingPage() {
       spend: 487.25,
       playtime: 156,
       time: '2h ago',
-      response: "Hi LakersForever,\n\nI checked your account and I can see you did purchase the Lakers Historic pack 2 hours ago. I understand how important completing your Lakers collection is.\n\nI've reviewed the pack opening and it appears there was a sync issue with the guaranteed card. I'm adding the Kobe Bryant (99 OVR) card to your collection right now.\n\nYou should see it in your lineup within the next 5 minutes. If you don't see it, try restarting the game.\n\nThank you for building your dream team with us! Go Lakers!",
+      response: "Hey LakersForever! I can see you're building up that Lakers collection - nice!\n\nLet me take a look at your account real quick to see what happened with that pack. Do you happen to remember if you got any error messages when you opened it, or did it just not show the Kobe card in the reveal?",
     },
     {
       id: '4',
@@ -233,7 +250,7 @@ export function GamingPage() {
       spend: 89.99,
       playtime: 89,
       time: '3h ago',
-      response: "Hi ShadowBlade,\n\nThank you for bringing this to our attention. This is definitely not intentional - stealth is core to the Assassin's Creed experience, especially in Mirage.\n\nWe identified an AI detection bug introduced in yesterday's patch that affects line-of-sight calculations. A hotfix is being deployed within the next 6 hours that will restore the intended stealth mechanics.\n\nI apologize for the disruption to your gameplay. As a stealth specialist, you deserve the authentic assassin experience you purchased.\n\nThe fix will restore the proper detection ranges and wall-blocking. No refund necessary - we're making this right.\n\nStay hidden, Assassin.",
+      response: "Hi ShadowBlade, thanks for reporting this. That definitely sounds frustrating - stealth is the core of Mirage, so I totally understand why this would be a problem.\n\nCan you tell me more about where this is happening? Is it in specific missions or areas, or are you seeing it throughout the game? Also, have you noticed if it's consistent or just happens sometimes?",
     },
   ];
 
@@ -361,6 +378,38 @@ export function GamingPage() {
               <div ref={chatEndRef} />
             </div>
 
+            {/* AI Response Editor */}
+            {showAiEditor && (
+              <div className="mt-3 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+                <div className="text-xs font-medium text-green-700 mb-2">AI DRAFT RESPONSE (EDIT BEFORE SENDING)</div>
+                <textarea
+                  value={aiResponseDraft}
+                  onChange={(e) => setAiResponseDraft(e.target.value)}
+                  className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm resize-none"
+                  rows={6}
+                  placeholder="Edit the AI's response..."
+                />
+                <div className="mt-2 flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowAiEditor(false);
+                      setAiResponseDraft('');
+                    }}
+                    className="px-4 py-2 bg-gray-400 text-white rounded-lg text-sm font-medium hover:bg-gray-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendAiResponse}
+                    disabled={!aiResponseDraft.trim()}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send AI Response
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Chat Input */}
             <div className="mt-3 flex gap-2">
               <input
@@ -368,19 +417,21 @@ export function GamingPage() {
                 placeholder="Type a message as the player..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                onKeyPress={(e) => e.key === 'Enter' && !showAiEditor && handleSendMessage()}
+                disabled={showAiEditor}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleResetConversation}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
+                disabled={showAiEditor}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                 title="Reset conversation to beginning"
               >
                 Reset
               </button>
               <button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isTyping}
+                disabled={!inputValue.trim() || isTyping || showAiEditor}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 Send
