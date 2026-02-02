@@ -50,9 +50,46 @@ export function GamingPage() {
     return conversations[ticketId] || [];
   };
 
-  // Generate AI response based on context
-  const generateAIResponse = (playerMessage: string, ticket: any): string => {
+  // Generate AI response based on context and conversation history
+  const generateAIResponse = (playerMessage: string, ticket: any, conversationHistory: Message[]): string => {
     const lowerMessage = playerMessage.toLowerCase();
+
+    // Get the last AI message to understand context
+    const lastAgentMessage = [...conversationHistory].reverse().find(m => m.sender === 'agent');
+    const lastAgentText = lastAgentMessage?.text.toLowerCase() || '';
+
+    // Check if we just promised something specific (rating restoration, compensation, etc.)
+    const promisedRatingRestore = lastAgentText.includes('rating') && lastAgentText.includes('restore');
+    const promisedCompensation = lastAgentText.includes('vc') || lastAgentText.includes('compensation') || lastAgentText.includes('adding');
+    const promisedFix = lastAgentText.includes('fix') || lastAgentText.includes('patch') || lastAgentText.includes('hotfix');
+    const mentionedTimeframe = lastAgentText.match(/(\d+)\s*(hour|day|minute)/i);
+
+    // Handle follow-up questions about timing/confirmation
+    if ((lowerMessage.includes('how long') || lowerMessage.includes('when') || lowerMessage.includes('confirm')) &&
+        (promisedRatingRestore || promisedCompensation || promisedFix)) {
+
+      if (ticket.spend > 500) {
+        if (promisedRatingRestore) {
+          return `You should see your rating restored within the next 2 hours. You'll receive an in-game notification once it's complete. If you don't see it by then, message me back and I'll check the status immediately.`;
+        }
+        if (promisedCompensation) {
+          return `The VC compensation will be added to your account within 30 minutes. You should see it the next time you restart the game. The system will also send you a confirmation message.`;
+        }
+        if (promisedFix && mentionedTimeframe) {
+          return `The fix should be deployed within ${mentionedTimeframe[0]}. You can check the game's update section or our status page for confirmation. I'll also follow up with you once it's live.`;
+        }
+      } else {
+        if (promisedFix) {
+          return `The patch is scheduled to go live within 24-48 hours. You'll see an update notification in the game when it's ready to download. Feel free to check back here if you need an update before then.`;
+        }
+      }
+    }
+
+    // Handle complaints/frustration after promises were made
+    if ((lowerMessage.includes('not') || lowerMessage.includes('didn\'t') || lowerMessage.includes('wasn\'t')) &&
+        (lowerMessage.includes('question') || lowerMessage.includes('answer'))) {
+      return `I apologize for the confusion. Let me address your specific question directly. Could you please clarify what you'd like to know? I want to make sure I give you the exact information you need.`;
+    }
 
     // High-value player responses (Competitive Whale, Dream Team Collector)
     if (ticket.spend > 500) {
@@ -110,10 +147,11 @@ export function GamingPage() {
 
     // Simulate AI typing delay
     setTimeout(() => {
+      const updatedConversation = conversations[selectedTicket] || currentConversation;
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'agent',
-        text: generateAIResponse(inputValue.trim(), ticket),
+        text: generateAIResponse(inputValue.trim(), ticket, updatedConversation),
         timestamp: 'Just now',
       };
 
