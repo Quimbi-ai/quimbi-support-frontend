@@ -163,6 +163,20 @@ export function GamingPage() {
     }, 1500);
   };
 
+  // Reset conversation to initial state
+  const handleResetConversation = () => {
+    if (!selectedTicket) return;
+
+    // Remove the conversation from state, forcing re-initialization
+    setConversations(prev => {
+      const newConversations = { ...prev };
+      delete newConversations[selectedTicket];
+      return newConversations;
+    });
+
+    setInputValue('');
+  };
+
   // Hardcoded fake tickets - NO API CALLS
   const tickets = [
     {
@@ -357,6 +371,13 @@ export function GamingPage() {
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+              <button
+                onClick={handleResetConversation}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
+                title="Reset conversation to beginning"
+              >
+                Reset
+              </button>
               <button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isTyping}
