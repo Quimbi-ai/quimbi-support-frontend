@@ -56,66 +56,67 @@ export function GamingPage() {
   const generateAIResponse = (playerMessage: string, ticket: any, conversationHistory: Message[]): string => {
     const lowerMessage = playerMessage.toLowerCase();
 
-    // Get the last AI message to understand context
+    // Get conversation context
     const lastAgentMessage = [...conversationHistory].reverse().find(m => m.sender === 'agent');
     const lastAgentText = lastAgentMessage?.text.toLowerCase() || '';
+    const allPlayerMessages = conversationHistory.filter(m => m.sender === 'player').map(m => m.text.toLowerCase()).join(' ');
 
-    // Check if we just promised something specific (rating restoration, compensation, etc.)
-    const promisedRatingRestore = lastAgentText.includes('rating') && lastAgentText.includes('restore');
-    const promisedCompensation = lastAgentText.includes('vc') || lastAgentText.includes('compensation') || lastAgentText.includes('adding');
-    const promisedFix = lastAgentText.includes('fix') || lastAgentText.includes('patch') || lastAgentText.includes('hotfix');
-    const mentionedTimeframe = lastAgentText.match(/(\d+)\s*(hour|day|minute)/i);
+    // Detect if this is a connection/lag issue
+    const isConnectionIssue = allPlayerMessages.includes('lag') || allPlayerMessages.includes('connection') ||
+                              allPlayerMessages.includes('disconnect') || allPlayerMessages.includes('unstable');
 
-    // Handle follow-up questions about timing/confirmation
-    if ((lowerMessage.includes('how long') || lowerMessage.includes('when') || lowerMessage.includes('confirm')) &&
-        (promisedRatingRestore || promisedCompensation || promisedFix)) {
+    // Check if AI asked a question that needs answering
+    const askedForDetails = lastAgentText.includes('tell me') || lastAgentText.includes('can you') ||
+                           lastAgentText.includes('do you') || lastAgentText.includes('have you');
+    const askedForDiagnostics = lastAgentText.includes('city') || lastAgentText.includes('provider') ||
+                               lastAgentText.includes('isp') || lastAgentText.includes('location');
 
-      if (ticket.spend > 500) {
-        if (promisedRatingRestore) {
-          return `You should see your rating restored within the next 2 hours. You'll receive an in-game notification once it's complete. If you don't see it by then, message me back and I'll check the status immediately.`;
+    // User is asking for solution/next steps
+    if ((lowerMessage.includes('solution') || lowerMessage.includes('what') && lowerMessage.includes('do')) ||
+        (lowerMessage.includes('ok') || lowerMessage.includes('okay')) && askedForDetails) {
+
+      if (isConnectionIssue) {
+        // Connection issue detected - provide diagnostic steps
+        const mentionedEndOfMatch = allPlayerMessages.includes('end') && allPlayerMessages.includes('match');
+
+        if (!askedForDiagnostics) {
+          return `Thanks for that information${mentionedEndOfMatch ? ' - the fact that it happens at the end of matches is really helpful' : ''}. To help diagnose this connection issue, I need a bit more info:\n\n1. What city are you playing from?\n2. Who's your internet service provider (ISP)?\n3. Are you on WiFi or wired connection?\n\nThis will help me check if there are any known issues with routing to our servers from your area.`;
+        } else {
+          // Already asked for diagnostics, give them next steps
+          return `Based on the connection pattern you're seeing, here's what I'd like you to try:\n\n1. Run a traceroute to our game servers - this will show where the connection is dropping\n2. Try switching from WiFi to wired (or vice versa) to see if that helps\n3. Restart your router/modem\n\nCan you also let me know what city you're in and your ISP? I want to check if there are any known routing issues affecting players in your area. In the meantime, I'm escalating this to restore your lost rating points.`;
         }
-        if (promisedCompensation) {
-          return `The VC compensation will be added to your account within 30 minutes. You should see it the next time you restart the game. The system will also send you a confirmation message.`;
-        }
-        if (promisedFix && mentionedTimeframe) {
-          return `The fix should be deployed within ${mentionedTimeframe[0]}. You can check the game's update section or our status page for confirmation. I'll also follow up with you once it's live.`;
-        }
-      } else {
-        if (promisedFix) {
-          return `The patch is scheduled to go live within 24-48 hours. You'll see an update notification in the game when it's ready to download. Feel free to check back here if you need an update before then.`;
-        }
+      }
+
+      // For non-connection issues, provide specific solutions based on ticket type
+      if (ticket.subject.toLowerCase().includes('trophy') || ticket.subject.toLowerCase().includes('achievement')) {
+        return `I've checked our system and this trophy bug is affecting several players. Here's the solution:\n\nOur team has a patch deploying on Tuesday (Feb 6th) that will fix this. Once it's live:\n1. Load your save file\n2. The trophy should auto-unlock within 24 hours\n3. If it doesn't, message me back and I'll manually trigger it for your account\n\nI'm also adding a special mount to your inventory as thanks for your patience.`;
+      }
+
+      if (ticket.subject.toLowerCase().includes('card') || ticket.subject.toLowerCase().includes('pack')) {
+        return `I've reviewed your account and confirmed the pack purchase. The guaranteed Kobe card didn't drop due to a sync issue. I'm adding it to your account right now - you should see it within 5 minutes. Try restarting the game if you don't see it immediately.\n\nI'm also adding 10,000 VC as an apology for the inconvenience.`;
+      }
+
+      if (ticket.subject.toLowerCase().includes('stealth') || ticket.subject.toLowerCase().includes('detect')) {
+        return `This is definitely a bug from yesterday's patch - enemies shouldn't be detecting through walls. Our team identified the issue and a hotfix is deploying within the next 6 hours. The fix will restore proper line-of-sight detection.\n\nNo need for a refund - we're making this right. I'll follow up once the hotfix is live.`;
       }
     }
 
-    // Handle complaints/frustration after promises were made
-    if ((lowerMessage.includes('not') || lowerMessage.includes('didn\'t') || lowerMessage.includes('wasn\'t')) &&
-        (lowerMessage.includes('question') || lowerMessage.includes('answer'))) {
-      return `I apologize for the confusion. Let me address your specific question directly. Could you please clarify what you'd like to know? I want to make sure I give you the exact information you need.`;
+    // User provided diagnostic info (mentions city, ISP, or location details)
+    if ((lowerMessage.includes('from') || lowerMessage.includes('isp') || lowerMessage.includes('provider') ||
+         lowerMessage.includes('wifi') || lowerMessage.includes('wired')) && askedForDiagnostics) {
+      return `Thanks for that info! Let me check our server routing for your area...\n\nI'm seeing some reports of intermittent routing issues with certain ISPs in that region. Here's what I recommend:\n\n1. Try using a wired connection if you're on WiFi (reduces packet loss)\n2. Restart your router/modem\n3. If possible, try connecting during off-peak hours (10am-4pm local time)\n\nI'm also restoring your 50 rating points right now and adding 100,000 VC as compensation for the frustration. You should see both within the next hour. I've escalated the routing issue to our network team for investigation.`;
     }
 
-    // High-value player responses (Competitive Whale, Dream Team Collector)
-    if (ticket.spend > 500) {
-      if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
-        return `You're very welcome, ${ticket.player}! As one of our top players, your satisfaction is our priority. Is there anything else I can help you with today?`;
-      }
-      if (lowerMessage.includes('when') || lowerMessage.includes('how long')) {
-        return `I'm checking on this right now. Given your player status, I'm prioritizing this and you should see the resolution within the next hour. I'll send you a confirmation as soon as it's complete.`;
-      }
-      if (lowerMessage.includes('still') || lowerMessage.includes('not working') || lowerMessage.includes('broken')) {
-        return `I sincerely apologize that you're still experiencing this issue. Let me escalate this immediately to our senior team. I'm also adding additional compensation to your account for the continued inconvenience. You'll receive an update within 30 minutes.`;
-      }
-      return `I completely understand your concern, ${ticket.player}. As a valued member of our community, I want to make sure this is resolved to your satisfaction. Let me look into this further and get back to you with a comprehensive solution.`;
-    }
-
-    // Standard player responses (Completionist, Stealth Purist)
+    // Handle thank you
     if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
-      return `You're welcome! I'm glad I could help. Feel free to reach out if you need anything else. Happy gaming!`;
+      return ticket.spend > 500
+        ? `You're very welcome, ${ticket.player}! As one of our top players, your satisfaction is our priority. Is there anything else I can help you with today?`
+        : `You're welcome! I'm glad I could help. Feel free to reach out if you need anything else. Happy gaming!`;
     }
-    if (lowerMessage.includes('when') || lowerMessage.includes('how long')) {
-      return `Based on our current timeline, you should see this resolved within 24-48 hours. I'll make sure to follow up with you once the fix is deployed.`;
-    }
-    if (lowerMessage.includes('still') || lowerMessage.includes('not working') || lowerMessage.includes('broken')) {
-      return `I'm sorry to hear it's still not working. Let me check the status of the fix and get back to you with an update. Can you let me know exactly what you're experiencing?`;
+
+    // User is providing more details about the issue
+    if (askedForDetails && !lowerMessage.includes('solution') && !lowerMessage.includes('ok')) {
+      return `That's really helpful context - ${lowerMessage.includes('end') ? 'the timing at the end of matches suggests it might be a server load issue during score calculation' : 'this information helps me narrow down what might be causing the problem'}. Let me gather a bit more information so I can provide you with the best solution. What city are you playing from, and who's your internet service provider?`;
     }
 
     // Default helpful response
