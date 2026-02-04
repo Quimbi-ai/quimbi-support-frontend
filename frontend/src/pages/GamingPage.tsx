@@ -31,6 +31,7 @@ export function GamingPage() {
     if (!conversations[ticketId]) {
       const ticket = tickets.find(t => t.id === ticketId);
       if (ticket) {
+        // Only initialize with player message - AI response will be shown in editor
         const initialMessages: Message[] = [
           {
             id: '1',
@@ -38,14 +39,13 @@ export function GamingPage() {
             text: ticket.fullMessage,
             timestamp: ticket.time,
           },
-          {
-            id: '2',
-            sender: 'agent',
-            text: ticket.response,
-            timestamp: 'Just now',
-          },
         ];
         setConversations(prev => ({ ...prev, [ticketId]: initialMessages }));
+
+        // Show initial AI response in editor for demo user to edit before sending
+        setAiResponseDraft(ticket.response);
+        setShowAiEditor(true);
+
         return initialMessages;
       }
     }
