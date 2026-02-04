@@ -60,34 +60,61 @@ export function GamingPage() {
     const lastAgentMessage = [...conversationHistory].reverse().find(m => m.sender === 'agent');
     const lastAgentText = lastAgentMessage?.text.toLowerCase() || '';
     const allPlayerMessages = conversationHistory.filter(m => m.sender === 'player').map(m => m.text.toLowerCase()).join(' ');
+    const allAgentMessages = conversationHistory.filter(m => m.sender === 'agent').map(m => m.text.toLowerCase()).join(' ');
 
     // Detect if this is a connection/lag issue
     const isConnectionIssue = allPlayerMessages.includes('lag') || allPlayerMessages.includes('connection') ||
                               allPlayerMessages.includes('disconnect') || allPlayerMessages.includes('unstable');
 
-    // Check if AI asked a question that needs answering
-    const askedForDetails = lastAgentText.includes('tell me') || lastAgentText.includes('can you') ||
-                           lastAgentText.includes('do you') || lastAgentText.includes('have you');
-    const askedForDiagnostics = lastAgentText.includes('city') || lastAgentText.includes('provider') ||
-                               lastAgentText.includes('isp') || lastAgentText.includes('location');
+    // Track what diagnostic steps we've already taken
+    const askedForLocation = allAgentMessages.includes('city') && (allAgentMessages.includes('provider') || allAgentMessages.includes('isp'));
+    const checkedOutages = allAgentMessages.includes('outage') || allAgentMessages.includes('routing issues') || allAgentMessages.includes('checking for any reported');
+    const suggestedTraceroute = allAgentMessages.includes('traceroute');
+    const offeredMonitoring = allAgentMessages.includes('flag') && allAgentMessages.includes('monitor');
+    const restoredRating = allAgentMessages.includes('restoring your') || allAgentMessages.includes('restore your');
 
-    // User is asking for solution/next steps
-    if ((lowerMessage.includes('solution') || lowerMessage.includes('what') && lowerMessage.includes('do')) ||
-        (lowerMessage.includes('ok') || lowerMessage.includes('okay')) && askedForDetails) {
+    // Check if user is providing location info (city/state + ISP)
+    // After asking for location, any response with 2+ words that isn't expressing desire is likely location info
+    const providingLocationInfo = askedForLocation && !checkedOutages &&
+                                  (lowerMessage.split(/[\s,]+/).length >= 2) &&
+                                  !lowerMessage.includes('want') && !lowerMessage.includes('need') &&
+                                  !lowerMessage.includes('just') && !lowerMessage.includes('play');
 
-      if (isConnectionIssue) {
-        // Connection issue detected - provide diagnostic steps
+    // Handle connection/lag issues with progressive diagnostic flow
+    if (isConnectionIssue) {
+      // Step 1: Ask for location if we haven't yet
+      if (!askedForLocation) {
         const mentionedEndOfMatch = allPlayerMessages.includes('end') && allPlayerMessages.includes('match');
-
-        if (!askedForDiagnostics) {
-          return `Thanks for that information${mentionedEndOfMatch ? ' - the fact that it happens at the end of matches is really helpful' : ''}. To help diagnose this connection issue, I need a bit more info:\n\n1. What city are you playing from?\n2. Who's your internet service provider (ISP)?\n3. Are you on WiFi or wired connection?\n\nThis will help me check if there are any known issues with routing to our servers from your area.`;
-        } else {
-          // Already asked for diagnostics, give them next steps
-          return `Based on the connection pattern you're seeing, here's what I'd like you to try:\n\n1. Run a traceroute to our game servers - this will show where the connection is dropping\n2. Try switching from WiFi to wired (or vice versa) to see if that helps\n3. Restart your router/modem\n\nCan you also let me know what city you're in and your ISP? I want to check if there are any known routing issues affecting players in your area. In the meantime, I'm escalating this to restore your lost rating points.`;
-        }
+        return `Thanks for that information${mentionedEndOfMatch ? ' - the fact that it happens at the end of matches is really helpful' : ''}. To help diagnose this connection issue, I need a bit more info:\n\n1. What city are you playing from?\n2. Who's your internet service provider (ISP)?\n3. Are you on WiFi or wired connection?\n\nThis will help me check if there are any known issues with routing to our servers from your area.`;
       }
 
-      // For non-connection issues, provide specific solutions based on ticket type
+      // Step 2: User provided location info - simulate outage check
+      if (providingLocationInfo) {
+        return `Thanks for that info! Let me check our server routing for your area...\n\nI'm checking for any reported outages or routing issues affecting your ISP in that region... I'm not seeing any widespread outages right now, but there could be localized routing inefficiencies.\n\nHere's what I recommend to diagnose further:\n\n1. Run a traceroute to our game servers (this shows where packets are being delayed)\n2. Try using a wired connection if you're on WiFi - this often reduces packet loss significantly\n3. Restart your router/modem to clear any cached routing\n\n${!restoredRating ? "I'm also restoring your 50 rating points right now and adding 100,000 VC as compensation for the frustration. You should see both within the next hour." : ""}\n\nCan you try these steps and let me know if the lag improves?`;
+      }
+
+      // Step 3: User wants to play / expressed frustration - offer monitoring as final step
+      if (checkedOutages && !offeredMonitoring && (lowerMessage.includes('want') || lowerMessage.includes('play') || lowerMessage.includes('just') || lowerMessage.includes('need'))) {
+        return `I completely understand - you just want to get back to playing without issues. Here's what I'm going to do:\n\n1. I'm flagging your account to monitor for any odd latency activity over the next 7 days\n2. If we detect any patterns, our network team will investigate the routing to your area specifically\n3. ${!restoredRating ? "Your rating points and VC compensation are being applied right now" : "You should already have your rating points and VC compensation"}\n\nIn the meantime, try the wired connection if you haven't already - that often makes a big difference. Is there anything else I can help you with today?`;
+      }
+
+      // Step 4: User tried suggestions or just wants closure
+      if (suggestedTraceroute || offeredMonitoring) {
+        if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
+          return ticket.spend > 500
+            ? `You're very welcome, ${ticket.player}! As one of our top players, your satisfaction is our priority. I've got your account flagged for monitoring, so we'll be keeping an eye on this. Feel free to reach out anytime if you need further assistance. Happy gaming!`
+            : `You're welcome! I'm glad I could help. Don't hesitate to reach out if the issue persists. Happy gaming!`;
+        }
+
+        // Default closure
+        return `I've documented everything we've discussed and escalated the issue to our network team. Your account is flagged for monitoring, so if we detect any patterns we'll reach out proactively. Is there anything else I can assist you with?`;
+      }
+    }
+
+    // Handle non-connection issues based on ticket type
+    if (lowerMessage.includes('solution') || (lowerMessage.includes('what') && lowerMessage.includes('do')) ||
+        lowerMessage.includes('ok') || lowerMessage.includes('okay')) {
+
       if (ticket.subject.toLowerCase().includes('trophy') || ticket.subject.toLowerCase().includes('achievement')) {
         return `I've checked our system and this trophy bug is affecting several players. Here's the solution:\n\nOur team has a patch deploying on Tuesday (Feb 6th) that will fix this. Once it's live:\n1. Load your save file\n2. The trophy should auto-unlock within 24 hours\n3. If it doesn't, message me back and I'll manually trigger it for your account\n\nI'm also adding a special mount to your inventory as thanks for your patience.`;
       }
@@ -101,12 +128,6 @@ export function GamingPage() {
       }
     }
 
-    // User provided diagnostic info (mentions city, ISP, or location details)
-    if ((lowerMessage.includes('from') || lowerMessage.includes('isp') || lowerMessage.includes('provider') ||
-         lowerMessage.includes('wifi') || lowerMessage.includes('wired')) && askedForDiagnostics) {
-      return `Thanks for that info! Let me check our server routing for your area...\n\nI'm seeing some reports of intermittent routing issues with certain ISPs in that region. Here's what I recommend:\n\n1. Try using a wired connection if you're on WiFi (reduces packet loss)\n2. Restart your router/modem\n3. If possible, try connecting during off-peak hours (10am-4pm local time)\n\nI'm also restoring your 50 rating points right now and adding 100,000 VC as compensation for the frustration. You should see both within the next hour. I've escalated the routing issue to our network team for investigation.`;
-    }
-
     // Handle thank you
     if (lowerMessage.includes('thank') || lowerMessage.includes('appreciate')) {
       return ticket.spend > 500
@@ -114,13 +135,25 @@ export function GamingPage() {
         : `You're welcome! I'm glad I could help. Feel free to reach out if you need anything else. Happy gaming!`;
     }
 
-    // User is providing more details about the issue
-    if (askedForDetails && !lowerMessage.includes('solution') && !lowerMessage.includes('ok')) {
-      return `That's really helpful context - ${lowerMessage.includes('end') ? 'the timing at the end of matches suggests it might be a server load issue during score calculation' : 'this information helps me narrow down what might be causing the problem'}. Let me gather a bit more information so I can provide you with the best solution. What city are you playing from, and who's your internet service provider?`;
+    // User is providing more context about the issue
+    if (lastAgentText.includes('tell me') || lastAgentText.includes('can you') ||
+        lastAgentText.includes('when') || lastAgentText.includes('where')) {
+
+      if (isConnectionIssue && !askedForLocation) {
+        return `That's really helpful context - ${lowerMessage.includes('end') ? 'the timing at the end of matches suggests it might be a server load issue during score calculation' : 'this information helps me narrow down what might be causing the problem'}. To diagnose this properly, can you let me know:\n\n1. What city are you playing from?\n2. Who's your internet service provider?\n3. Are you on WiFi or wired connection?`;
+      }
+
+      return `Thanks for that additional context. Let me look into this for you and find the best solution. ${isConnectionIssue ? 'Since this seems connection-related, can you tell me your city and internet provider?' : 'Give me just a moment to review your account details.'}`;
     }
 
-    // Default helpful response
-    return `Thanks for the additional information. I'm reviewing your account details and will make sure this gets the attention it deserves. Is there anything specific you'd like me to prioritize?`;
+    // Default: avoid generic repetitive response
+    if (allAgentMessages.includes('reviewing your account') || allAgentMessages.includes('additional information')) {
+      // We've already used the generic response, provide something more specific
+      return `Let me make sure I understand correctly - ${isConnectionIssue ? 'you\'re experiencing lag/connection issues and want them resolved so you can play competitively?' : 'you need this issue resolved?'} What would be the most helpful outcome for you right now?`;
+    }
+
+    // Fallback response (only used if we haven't said it before)
+    return `Thanks for the additional information. I'm reviewing your account details and will make sure this gets the attention it deserves. What would be the most helpful next step for you?`;
   };
 
   // Handle sending a message
